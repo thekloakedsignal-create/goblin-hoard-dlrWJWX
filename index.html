@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Goblin Hoard</title>
+<style>
+  :root {
+    --bg: #0d0a14;
+    --panel: #171226;
+    --panel-2: #1f1833;
+    --gold: #f6c344;
+    --gold-dim: #8a6b1e;
+    --green: #7bc74a;
+    --green-dark: #3d6b26;
+    --text: #e8e6f0;
+    --muted: #9a93b8;
+    --danger: #e05252;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+    background: radial-gradient(ellipse at top, #1a1430 0%, var(--bg) 70%) fixed;
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    background: linear-gradient(180deg, #231a3d, #171226);
+    border-bottom: 2px solid #2c2150;
+  }
+  header h1 {
+    font-size: 1.4rem;
+    letter-spacing: 1px;
+    color: var(--gold);
+    text-shadow: 0 0 12px rgba(246, 195, 68, 0.4);
+  }
+  .gold-display {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--gold);
+    font-variant-numeric: tabular-nums;
+  }
+  .icon-btn {
+    background: var(--panel-2);
+    border: 1px solid #3a2d5e;
+    border-radius: 8px;
+    color: var(--text);
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background .15s;
+  }
+  .icon-btn:hover { background: #2a2145; }
+  main {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding: 20px;
+    max-width: 1100px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  .stage-wrap {
+    flex: 1 1 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+  .speech {
+    min-height: 44px;
+    background: var(--panel-2);
+    border: 1px solid #3a2d5e;
+    border-radius: 14px;
+    padding: 8px 16px;
+    position: relative;
+    color: #d4ffd0;
+    font-size: .95rem;
+    text-align: center;
+    opacity: 0;
+    transition: opacity .3s;
+  }
+  .speech.show { opacity: 1; }
+  .speech::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 8px solid transparent;
+    border-top-color: #3a2d5e;
+    border-bottom: 0;
+  }
+  #goblin-stage {
+    position: relative;
+    width: min(320px, 80vw);
+    height: min(320px, 80vw);
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #goblin-stage svg {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 10px 24px rgba(123, 199, 74, 0.25));
+  }
+  #goblin-stage.squish-anim svg { animation: squish .15s ease; }
+  @keyframes squish {
+    0% { transform: scale(1, 1); }
+    40% { transform: scale(1.08, 0.9); }
+    100% { transform: scale(1, 1); }
+  }
+  #goblin-stage svg #goblin-body {
+    animation: idle-bounce 2.4s ease-in-out infinite;
+    transform-origin: center bottom;
+  }
+  @keyframes idle-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  .particle {
+    position: absolute;
+    font-weight: bold;
+    color: var(--gold);
+    text-shadow: 0 0 8px rgba(246,195,68,.8);
+    pointer-events: none;
+    animation: float-up .8s ease-out forwards;
+    font-size: 1.1rem;
+  }
+  @keyframes float-up {
+    0% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-70px); }
+  }
+  .stats {
+    display: flex;
+    gap: 24px;
+    background: var(--panel);
+    border: 1px solid #2c2150;
+    border-radius: 12px;
+    padding: 12px 20px;
+    font-size: .9rem;
+  }
+  .stats span b { color: var(--green); }
+  .shop {
+    flex: 1 1 320px;
+    background: var(--panel);
+    border: 1px solid #2c2150;
+    border-radius: 14px;
+    padding: 16px;
+    max-height: 620px;
+    overflow-y: auto;
+  }
+  .shop h2 {
+    font-size: 1.1rem;
+    color: var(--green);
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+  }
+  .upgrade-grid { display: flex; flex-direction: column; gap: 10px; }
+  .upgrade {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--panel-2);
+    border: 1px solid #3a2d5e;
+    border-radius: 10px;
+    padding: 10px 12px;
+    text-align: left;
+    transition: border-color .15s, background .15s;
+  }
+  button.upgrade { cursor: pointer; font-family: inherit; color: inherit; width: 100%; }
+  button.upgrade:hover:not(:disabled) { border-color: var(--gold-dim); background: #261d3f; }
+  button.upgrade:disabled { opacity: .55; cursor: not-allowed; }
+  .upgrade .icon { font-size: 1.6rem; flex-shrink: 0; }
+  .upgrade .info { flex: 1; }
+  .upgrade .name { font-size: .95rem; font-weight: bold; }
+  .upgrade .desc { font-size: .78rem; color: var(--muted); }
+  .upgrade .cost {
+    text-align: right;
+    font-size: .85rem;
+    color: var(--gold);
+    font-variant-numeric: tabular-nums;
+  }
+  .upgrade .owned {
+    font-size: .7rem;
+    color: var(--green);
+  }
+  footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    font-size: .75rem;
+    color: var(--muted);
+  }
+  footer button {
+    background: none;
+    border: 1px solid #3a2d5e;
+    color: var(--danger);
+    border-radius: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: .75rem;
+  }
+  footer button:hover { border-color: var(--danger); }
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 28px;
+    transform: translateX(-50%) translateY(16px);
+    background: var(--panel-2);
+    border: 1px solid var(--gold-dim);
+    border-radius: 12px;
+    padding: 12px 18px;
+    font-size: .9rem;
+    text-align: center;
+    color: var(--gold);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, .55);
+    opacity: 0;
+    pointer-events: none;
+    cursor: pointer;
+    transition: opacity .3s ease, transform .3s ease;
+    z-index: 20;
+    max-width: min(90vw, 420px);
+  }
+  .toast.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(0);
+  }
+  @media (max-width: 720px) {
+    header h1 { font-size: 1.1rem; }
+    .gold-display { font-size: 1.1rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>👺 Goblin Hoard</h1>
+  <div class="gold-display"><span id="gold">0</span> 🪙</div>
+  <button class="icon-btn" id="mute-btn" title="Toggle sound">🔊</button>
+</header>
+
+<main>
+  <div class="stage-wrap">
+    <div class="speech" id="speech">Shiny!</div>
+
+    <div id="goblin-stage" role="button" aria-label="Click the goblin to steal gold" tabindex="0">
+      <svg viewBox="0 0 200 200" aria-hidden="true">
+        <g id="goblin-body">
+          <ellipse cx="36" cy="88" rx="26" ry="13" fill="#3d6b26" />
+          <ellipse cx="164" cy="88" rx="26" ry="13" fill="#3d6b26" />
+          <ellipse cx="36" cy="88" rx="14" ry="6" fill="#7bc74a" />
+          <ellipse cx="164" cy="88" rx="14" ry="6" fill="#7bc74a" />
+          <circle cx="100" cy="105" r="58" fill="#7bc74a" />
+          <circle cx="100" cy="105" r="58" fill="none" stroke="#3d6b26" stroke-width="3" />
+          <ellipse cx="80" cy="88" rx="10" ry="12" fill="#f6c344" stroke="#3d6b26" stroke-width="2" />
+          <ellipse cx="120" cy="88" rx="10" ry="12" fill="#f6c344" stroke="#3d6b26" stroke-width="2" />
+          <circle cx="82" cy="90" r="4" fill="#191929" />
+          <circle cx="122" cy="90" r="4" fill="#191929" />
+          <path d="M 96 100 q 4 8 8 0" stroke="#3d6b26" stroke-width="3" fill="none" stroke-linecap="round" />
+          <path d="M 72 124 q 28 18 56 0" stroke="#2c4d1c" stroke-width="4" fill="none" stroke-linecap="round" />
+          <path d="M 66 118 L 74 124 L 66 129 Z" fill="#fff" />
+          <path d="M 134 118 L 126 124 L 134 129 Z" fill="#fff" />
+          <path d="M 88 148 L 92 158 L 96 148" fill="#f6c344" stroke="#8a6b1e" stroke-width="1.5" />
+        </g>
+      </svg>
+    </div>
+
+    <div class="stats">
+      <span>Per click: <b id="stat-per-click">1</b></span>
+      <span>Auto: <b id="stat-per-sec">0</b>/s</span>
+      <span>Clicks: <b id="stat-clicks">0</b></span>
+    </div>
+  </div>
+
+  <div class="shop">
+    <h2>SHENANIGANS</h2>
+    <div class="upgrade-grid" id="upgrade-grid"></div>
+  </div>
+</main>
+
+<div class="toast" id="offline-toast" role="status" aria-live="polite"></div>
+
+<footer>
+  <span id="save-status">Progress auto-saves locally</span>
+  <button id="reset-btn">Reset hoard</button>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  var SAVE_KEY = 'goblin-hoard-save-v1';
+  var OFFLINE_CAP_SECONDS = 8 * 60 * 60;
+
+  var UPGRADES = [
+    { id: 'rustyBlade', icon: '🗡️', name: 'Rusty Dagger',   desc: '+1 gold per poke',        baseCost: 15,     perClick: 1,  perSec: 0 },
+    { id: 'sneakyBoots', icon: '🥾', name: 'Sneaky Boots',  desc: '+5 gold per poke',        baseCost: 120,    perClick: 5,  perSec: 0 },
+    { id: 'lootSack',   icon: '🎒', name: 'Bottomless Sack',desc: '+20 gold per poke',       baseCost: 900,    perClick: 20, perSec: 0 },
+    { id: 'minion',     icon: '🧌', name: 'Goblin Minion',  desc: '+1 gold per second',      baseCost: 100,    perClick: 0,  perSec: 1 },
+    { id: 'guild',      icon: '🏴', name: 'Thieves Guild',  desc: '+8 gold per second',      baseCost: 1500,   perClick: 0,  perSec: 8 },
+    { id: 'dragon',     icon: '🐉', name: 'Dragon Deal',    desc: '+60 gold per second',     baseCost: 12000,  perClick: 0,  perSec: 60 }
+  ];
+
+  var QUIPS = [
+    'Shiny!', 'Mine!', 'More gold!', 'Hehehe...', 'Grub likey.', 'Oh, a coin!',
+    'The treasury grows!', 'Stolen fair and square!', 'Goblin economics!', 'Do NOT tell the elf.'
+  ];
+
+  var state = {
+    gold: 0,
+    totalClicks: 0,
+    upgrades: {},
+    lastSave: 0
+  };
+
+  var muted = false;
+  var audioCtx = null;
+  var offlineReward = null;
+
+  var el = {
+    gold: document.getElementById('gold'),
+    perClick: document.getElementById('stat-per-click'),
+    perSec: document.getElementById('stat-per-sec'),
+    clicks: document.getElementById('stat-clicks'),
+    stage: document.getElementById('goblin-stage'),
+    speech: document.getElementById('speech'),
+    grid: document.getElementById('upgrade-grid'),
+    muteBtn: document.getElementById('mute-btn'),
+    resetBtn: document.getElementById('reset-btn'),
+    saveStatus: document.getElementById('save-status'),
+    toast: document.getElementById('offline-toast')
+  };
+
+  function fmt(n) {
+    n = Math.floor(n);
+    if (n < 1000) return String(n);
+    var suffixes = ['K', 'M', 'B', 'T', 'Q'];
+    var value = n;
+    var idx = -1;
+    while (value >= 1000 && idx < suffixes.length - 1) {
+      value /= 1000;
+      idx++;
+    }
+    return value.toFixed(value < 10 ? 1 : 0) + suffixes[idx];
+  }
+
+  function fmtDuration(sec) {
+    var h = Math.floor(sec / 3600);
+    var m = Math.floor((sec % 3600) / 60);
+    if (h > 0) return h + 'h ' + m + 'm';
+    if (m > 0) return m + 'm';
+    return sec + 's';
+  }
+
+  function countOwned(id) {
+    return state.upgrades[id] || 0;
+  }
+
+  function costOf(def) {
+    return Math.floor(def.baseCost * Math.pow(1.15, countOwned(def.id)));
+  }
+
+  function clickPower() {
+    var p = 1;
+    UPGRADES.forEach(function (d) { p += d.perClick * countOwned(d.id); });
+    return p;
+  }
+
+  function goldPerSec() {
+    var s = 0;
+    UPGRADES.forEach(function (d) { s += d.perSec * countOwned(d.id); });
+    return s;
+  }
+
+  function save() {
+    try {
+      state.lastSave = Date.now();
+      localStorage.setItem(SAVE_KEY, JSON.stringify({
+        gold: state.gold,
+        totalClicks: state.totalClicks,
+        upgrades: state.upgrades,
+        muted: muted,
+        lastSave: state.lastSave
+      }));
+      el.saveStatus.textContent = 'Saved ' + new Date().toLocaleTimeString();
+    } catch (e) { }
+  }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return;
+      var data = JSON.parse(raw);
+      if (typeof data.gold === 'number') state.gold = data.gold;
+      if (typeof data.totalClicks === 'number') state.totalClicks = data.totalClicks;
+      if (data.upgrades && typeof data.upgrades === 'object') state.upgrades = data.upgrades;
+      if (typeof data.muted === 'boolean') muted = data.muted;
+
+      if (typeof data.lastSave === 'number' && data.lastSave > 0) {
+        var elapsed = Math.floor((Date.now() - data.lastSave) / 1000);
+        elapsed = Math.min(Math.max(elapsed, 0), OFFLINE_CAP_SECONDS);
+        var gps = goldPerSec();
+        if (elapsed >= 60 && gps > 0) {
+          var earned = Math.floor(gps * elapsed);
+          if (earned > 0) {
+            state.gold += earned;
+            offlineReward = { amount: earned, seconds: elapsed };
+          }
+        }
+      }
+    } catch (e) { }
+  }
+
+  function updateMuteIcon() {
+    el.muteBtn.textContent = muted ? '🔇' : '🔊';
+  }
+
+  function render() {
+    el.gold.textContent = fmt(state.gold);
+    el.perClick.textContent = fmt(clickPower());
+    el.perSec.textContent = fmt(goldPerSec());
+    el.clicks.textContent = fmt(state.totalClicks);
+
+    UPGRADES.forEach(function (def) {
+      var btn = document.querySelector('[data-upgrade="' + def.id + '"]');
+      if (!btn) return;
+      var cost = costOf(def);
+      btn.disabled = state.gold < cost;
+      btn.querySelector('.cost-value').textContent = fmt(cost);
+      btn.querySelector('.owned').textContent = 'Owned: ' + countOwned(def.id);
+    });
+  }
+
+  function playCoin() {
+    if (muted) return;
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      var now = audioCtx.currentTime;
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(1450, now);
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.08);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.12);
+    } catch (e) { }
+  }
+
+  function spawnParticle(amount, x, y) {
+    var p = document.createElement('span');
+    p.className = 'particle';
+    p.textContent = '+' + fmt(amount);
+    p.style.left = x + 'px';
+    p.style.top = y + 'px';
+    el.stage.appendChild(p);
+    setTimeout(function () { p.remove(); }, 850);
+  }
+
+  function maybeSpeak() {
+    if (Math.random() > 0.15) return;
+    el.speech.textContent = QUIPS[Math.floor(Math.random() * QUIPS.length)];
+    el.speech.classList.add('show');
+    clearTimeout(maybeSpeak._t);
+    maybeSpeak._t = setTimeout(function () {
+      el.speech.classList.remove('show');
+    }, 1800);
+  }
+
+  function showToast(msg) {
+    el.toast.textContent = msg;
+    el.toast.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(function () {
+      el.toast.classList.remove('show');
+    }, 9000);
+  }
+
+  function handleLoot(evt) {
+    var rect = el.stage.getBoundingClientRect();
+    var x = (evt.clientX || (rect.left + rect.width / 2)) - rect.left;
+    var y = (evt.clientY || (rect.top + rect.height / 2)) - rect.top;
+
+    var amount = clickPower();
+    state.gold += amount;
+    state.totalClicks += 1;
+
+    el.stage.classList.remove('squish-anim');
+    void el.stage.offsetWidth;
+    el.stage.classList.add('squish-anim');
+
+    spawnParticle(amount, x, y);
+    playCoin();
+    maybeSpeak();
+    render();
+  }
+
+  function buy(def) {
+    var cost = costOf(def);
+    if (state.gold < cost) return;
+    state.gold -= cost;
+    state.upgrades[def.id] = countOwned(def.id) + 1;
+    render();
+    save();
+  }
+
+  function buildShop() {
+    el.grid.innerHTML = '';
+    UPGRADES.forEach(function (def) {
+      var btn = document.createElement('button');
+      btn.className = 'upgrade';
+      btn.setAttribute('data-upgrade', def.id);
+      btn.innerHTML =
+        '<span class="icon">' + def.icon + '</span>' +
+        '<span class="info">' +
+          '<span class="name">' + def.name + '</span>' +
+          '<span class="desc">' + def.desc + '</span>' +
+        '</span>' +
+        '<span class="cost">' +
+          '<span class="cost-value">' + fmt(costOf(def)) + '</span> coins<br>' +
+          '<span class="owned">Owned: ' + countOwned(def.id) + '</span>' +
+        '</span>';
+      btn.addEventListener('click', function () { buy(def); });
+      el.grid.appendChild(btn);
+    });
+  }
+
+  setInterval(function () {
+    var gps = goldPerSec();
+    if (gps > 0) {
+      state.gold += gps / 10;
+      render();
+    }
+  }, 100);
+
+  setInterval(save, 5000);
+  window.addEventListener('beforeunload', save);
+
+  el.stage.addEventListener('pointerdown', handleLoot);
+  el.stage.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleLoot(e); }
+  });
+
+  el.muteBtn.addEventListener('click', function () {
+    muted = !muted;
+    updateMuteIcon();
+    save();
+  });
+
+  el.resetBtn.addEventListener('click', function () {
+    if (!confirm('Toss the hoard and start over?')) return;
+    state.gold = 0;
+    state.totalClicks = 0;
+    state.upgrades = {};
+    save();
+    render();
+  });
+
+  el.toast.addEventListener('click', function () {
+    el.toast.classList.remove('show');
+  });
+
+  load();
+  updateMuteIcon();
+  buildShop();
+  render();
+
+  if (offlineReward) {
+    showToast('Welcome back! Your crew looted ' + fmt(offlineReward.amount) +
+      ' gold while you were away (' + fmtDuration(offlineReward.seconds) + ').');
+  }
+})();
+</script>
+
+</body>
+</html>
